@@ -1,0 +1,72 @@
+name: Depth odom config
+
+# Tracking
+tracking:
+  device: cuda:0
+  dtype: float
+  color: gray # rgb, gray
+  pyr:
+    start_level: 0
+    end_level: 3
+    depth_interp_mode: nearest_neighbor
+  term_criteria:
+    max_iter: 50
+    delta_norm: 1.0e-3
+    # abs_tol: 1.0e-10
+    rel_tol: 1.0e-3
+    grad_norm: 1.0
+  sigmas:
+    photo: 1.0e-1
+  keyframing:
+    kf_depth_motion_ratio: 0.12
+    kf_num_pixels_frac: 0.75
+    one_way_freq: 3 # Ideally num one way between KFs evenly spaced
+
+# Mapping
+mapping:
+  device: cuda:1
+  dtype: double
+  color: gray # rgb, gray
+  model_path: models/scannet.ckpt
+  track_ref:
+    num_keyframes: 1
+  graph:
+    num_keyframes: 9
+    num_one_way_frames: 24
+  photo_construction:
+    nonmax_suppression_window: 4
+    pairwise_batch_size: 128
+    # One-way frame reference checks
+    radius_thresh: 0.0 # dist < baseline/median_depth
+    degrees_thresh: 0.0
+  term_criteria:
+    max_iter: 20
+    delta_norm: 1.0e-8
+    abs_tol: 1.0e-6
+    rel_tol: 1.0e-6
+  sigmas:
+    photo: 1.0e-1
+    mean_depth_prior: 1.0e-2 # Used before sliding window full
+    scale_prior: 1.0e-4
+    pose_prior: 1.0e-6
+  sampling:
+    mode: greedy_conditional_entropy # ["random_uniform", "greedy_conditional_entropy"]
+    max_num_coords: 64
+    max_stdev_thresh: 1.0e-2 # Negative for no threshold
+    border: 3 # Won't sample points this close to border
+    fixed_var: 0.0e-4
+    dist_thresh: 1.0e-1
+  corr:
+    corr_mode : logz
+    corr_thresh : 3.0e-2 
+    distill_with_prior : True # Correspondence better with True since enforces depths reprojected on same surface to be smooth
+    min_obs_depth : 0.0e-1
+    logz_grad_mag_thresh : 7.0e-2 # Avoids corresponding points on discontinuities which can blur surfaces
+  init:
+    start_level: 0
+    end_level: 3
+    max_iter: 50
+    delta_norm: 1.0e-4
+    rel_tol: 1.0e-4
+    kf_depth_motion_ratio: 0.04
+    kf_num_pixels_frac: 0.75 

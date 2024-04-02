@@ -1,0 +1,27 @@
+name: Open3D visualization config
+
+device: cpu
+dtype: float
+
+# Divide by scale, then clamped to [min, max]
+depth_scale: 1.0
+depth_min: 0.0
+depth_max: 3.0
+
+# Scale of median depth for visualizing frustums, camera view
+frustum_const: 0.01
+
+# Threshold for ignoring points/mesh at oblique angles
+cos_thresh: 0.2 # 0.15 = 81 deg, 0.25 = 75 deg
+
+pcd_shader: "defaultUnlit" 
+pcd_point_size: 3
+sphere_scale: 0.002
+
+gt_color: [0., 0., 0.]
+tracking_color: [1.0, 0.0, 0.0]
+kf_color: [0.0, 0.0, 1.0]
+one_way_color: [0.0, 0.0, 0.1]
+
+inducing_point_radius: 3
+inducing_point_color: [0.0, 0.0, 1.0]
