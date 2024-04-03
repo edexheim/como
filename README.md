@@ -58,7 +58,7 @@ If you found this code/work to be useful in your own research, please consider c
 @inproceedings{dexheimer2023depthcov,
   title={Learning a Depth Covariance Function},
   author={Eric Dexheimer and Andrew J. Davison},
-  booktitle={IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR).},
+  booktitle={IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
   year={2023}
 }
 ```
