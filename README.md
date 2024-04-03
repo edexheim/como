@@ -4,6 +4,12 @@
 <h3 align="center"> <a href="https://edexheim.github.io/como/pdf/como.pdf">Paper</a> | <a href="https://edexheim.github.io/como/">Project Page</a> | <a href="https://youtu.be/9MxCQp-0vI0">Video</a> </h3>
 <h3 align="center"> <a href="https://edexheim.github.io/">Eric Dexheimer</a> and <a href="https://www.doc.ic.ac.uk/~ajd/">Andrew J. Davison</a> </h3>
 
+<p align="center">
+  <a href="">
+    <img src="./media/title_fig.png" alt="como" width="100%">
+  </a>
+</p>
+
 COMO is a real-time monocular odometry and mapping system based on a compact 3D scene representation.
 
 ## Setup
