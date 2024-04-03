@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="">
-    <img src="./media/title_fig.png" alt="como" width="100%">
+    <img src="./media/title_fig.png" alt="como" width="50%">
   </a>
 </p>
 
