@@ -17,12 +17,15 @@
 */
 
 #version 330 core
-
-uniform vec3 lightpos;
-uniform bool phong_enabled;
-uniform bool normals_render;
-uniform mat4 mvp;
-
+uniform mat4 m_model;
+uniform mat4 m_camera;
+// opengl gl left-hand, x-right, y-up, z-fwd
+uniform vec3 lightpos = vec3(0, 0.3, -1);
+uniform vec3 phong = vec3(0.5, 0.4, 3);
+uniform float spec = 3;
+uniform bool texmap = true;
+uniform bool shownormal = false;
+uniform vec3 basecolor = vec3(1, 1, 1);
 in fData
 {
   vec3 color;
@@ -32,58 +35,33 @@ in fData
 
 out vec4 out_color;
 
-vec3 normal2rgb(vec3 normal) {
-  vec3 rgb = 0.5*(1.0 + normal);
-  return rgb;
-}
 
-// TODO: paramatrize some stuff inside here
-vec3 phong_shading(vec3 incolor, vec3 normal)
-{
-  vec3 lightpos_cam = (mvp * vec4(lightpos, 1.0f)).xyz;
+void main() {
+    if (shownormal) {
+      // mat4 m_view = m_camera * m_model;
+      // mat3 m_normal = inverse(transpose(mat3(m_view)));
+      // vec3 N = m_normal * normalize(frag.normal);
+      vec3 N = normalize(frag.normal);
+      out_color = vec4(N * 0.5 + 0.5, 1.0);
+    } else {
+      float kA = phong[0];
+      float kD = phong[1];
+      float kS = phong[2];
 
-  // weights
-  float ka = 0.9; // ambient
-  float kd = 0.0; // diffuse
-  float ks = 0.3; // specular
-  float shininess = 32.0;
+      vec3 color = texmap ? frag.color : basecolor;
+      // color = vec4(1, 1, 1, 1);
 
-  // colors
-  vec3 ambient_color = incolor;
-  vec3 diffuse_color = incolor;
-  vec3 specular_color = vec3(1.0, 1.0, 1.0);
-
-  // ambient term
-  vec3 ambient = ka * ambient_color;
-
-  // diffuse term
-  vec3 lightDir = normalize(lightpos_cam - frag.pos);
-  float NdotL = dot(normal, lightDir);
-  float lambertian = max(NdotL, 0.0);
-  vec3 diffuse = kd * lambertian * diffuse_color;
-
-  // specular term
-  vec3 rVector = normalize(2.0 * normal * dot(normal, lightDir) - lightDir);
-  vec3 viewVector = normalize(-frag.pos);
-  float RdotV = dot(rVector, viewVector);
-  float spec_angle = max(RdotV, 0.0);
-  vec3 specular = ks * pow(spec_angle, shininess) * specular_color;
-
-  return ambient + diffuse + specular;
-}
-
-void main()
-{
-  if (phong_enabled)
-  {
-    out_color = vec4(phong_shading(frag.color, frag.normal), 1.);
-  }
-  else if (normals_render) 
-  {
-    out_color = vec4(normal2rgb(frag.normal), 1.);
-  }
-  else
-  {
-    out_color = vec4(frag.color, 1.);
-  }
+      vec3 L = normalize(lightpos - frag.pos);
+      vec3 N = normalize(frag.normal);
+      float lambertian = max(dot(N, L), 0.0);
+      float specular = 0;
+      if (lambertian > 0.0) {
+          // vec3 R = reflect(-L, N);
+          vec3 R = 2 * (L * N) * N - L;
+          vec3 V = normalize(-frag.pos);
+          specular = pow(max(dot(R, V), 0.0), spec);
+      // out_color = vec4(color * kA + basecolor * lambertian * kD + kS * specular, 1.0);
+      }
+      out_color = vec4(vec3(color * (kA + lambertian * kD + kS * specular)), 1.0);
+    }
 }

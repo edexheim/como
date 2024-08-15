@@ -17,32 +17,43 @@ class OpenGLRenderer:
 
         gl.glViewport(0, 0, w, h)
         cur_path = os.path.dirname(os.path.abspath(__file__))
-        self.program = util.load_shaders(
-            os.path.join(cur_path, "shaders/empty.vert"),
-            os.path.join(cur_path, "shaders/drawkf.geom"),
-            os.path.join(cur_path, "shaders/phong.frag"),
-        )
-
+        try:
+            self.program = util.load_shaders(
+                os.path.join(cur_path, "shaders/empty.vert"),
+                os.path.join(cur_path, "shaders/drawkf.geom"),
+                os.path.join(cur_path, "shaders/phong.frag"),
+            )
+        except Exception as e:
+            print("failed to compile")
         # Initialize textures
         self.rgb_tid = util.Reinitialise(w, h, "rgb")
         self.depth_tid = util.Reinitialise(w, h, "float")
         self.valid_tid = util.Reinitialise(w, h, "float")
 
-    def set_frag_vars(self, mvp):
+    def set_frag_vars(self, M, V, P):
         lightpos = np.array([0.0, 0.0, 0.0])
 
-        util.set_uniform_v3(self.program, lightpos, "lightpos")
+        # util.set_uniform_v3(self.program, lightpos, "lightpos")
         util.set_uniform_1int(self.program, 1, "phong_enabled")
         util.set_uniform_1int(self.program, 0, "normals_render")
-        util.set_uniform_mat4(self.program, mvp, "mvp")  # TODO: Also in geom?
+        util.set_uniform_mat4(self.program, M.numpy(), "m_model")  # TODO: Also in geom?
+        util.set_uniform_mat4(
+            self.program, V.numpy(), "m_camera"
+        )  # TODO: Also in geom?
+        util.set_uniform_mat4(self.program, P.numpy(), "m_proj")  # TODO: Also in geom?
 
-    def set_geom_vars(self, mvp, K):
+    def set_geom_vars(self, M, V, P, K):
         h = self.height_
         w = self.width_
 
         intrinsics = torch.as_tensor([K[0, 0], K[1, 1], K[0, 2], K[1, 2]])
+        util.set_uniform_mat4(self.program, M.numpy(), "m_model")  # TODO: Also in geom?
+        util.set_uniform_mat4(
+            self.program, V.numpy(), "m_camera"
+        )  # TODO: Also in geom?
+        util.set_uniform_mat4(self.program, P.numpy(), "m_proj")  # TODO: Also in geom?
 
-        util.set_uniform_mat4(self.program, mvp, "mvp")  # TODO: Also in frag?
+        # util.set_uniform_mat4(self.program, mvp, "mvp")  # TODO: Also in frag?
         util.set_uniform_v4(self.program, intrinsics, "cam")
         util.set_uniform_1int(self.program, w, "width")
         util.set_uniform_1int(self.program, h, "height")
@@ -81,18 +92,29 @@ class OpenGLRenderer:
     #  If you wish to use any of this code for commercial purposes then please
     #  email researchcontracts.engineering@imperial.ac.uk.
 
-    def render_keyframe(self, kf_rgb, kf_depth, kf_pose, K, T):
+    def render_keyframe(self, kf_rgb, kf_depth, kf_pose, K, V, P):
         self.update_kf_textures(kf_rgb, kf_depth)
+        cur_path = os.path.dirname(os.path.abspath(__file__))
+        try:
+            self.program = util.load_shaders(
+                os.path.join(cur_path, "shaders/empty.vert"),
+                os.path.join(cur_path, "shaders/drawkf.geom"),
+                os.path.join(cur_path, "shaders/phong.frag"),
+            )
+        except Exception as e:
+            print("failed to compile")
+            print(e)
 
         # Activate program
         gl.glUseProgram(self.program)
 
-        # TODO: Get relative pose between viewpoint and keyframe pose
-        mvp = T.numpy() @ kf_pose.numpy()
-
+        # TODO: Get relative pose between viewpoint and keyframe pos
+        # T = P @ V
+        # mvp = T @ kf_pose.numpy()
+        M = kf_pose
         # Fill uniforms
-        self.set_frag_vars(mvp)
-        self.set_geom_vars(mvp, K)
+        self.set_frag_vars(M, V, P)
+        self.set_geom_vars(M, V, P, K)
 
         # Texture bank ids
         util.set_uniform_1int(self.program, 0, "image")
