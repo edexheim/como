@@ -17,6 +17,7 @@ class OpenGLRenderer:
 
         gl.glViewport(0, 0, w, h)
         cur_path = os.path.dirname(os.path.abspath(__file__))
+        self.program_mtime = 0
         try:
             self.program = util.load_shaders(
                 os.path.join(cur_path, "shaders/empty.vert"),
@@ -95,16 +96,19 @@ class OpenGLRenderer:
     def render_keyframe(self, kf_rgb, kf_depth, kf_pose, K, V, P):
         self.update_kf_textures(kf_rgb, kf_depth)
         cur_path = os.path.dirname(os.path.abspath(__file__))
-        try:
-            self.program = util.load_shaders(
-                os.path.join(cur_path, "shaders/empty.vert"),
-                os.path.join(cur_path, "shaders/drawkf.geom"),
-                os.path.join(cur_path, "shaders/phong.frag"),
-            )
-        except Exception as e:
-            print("failed to compile")
-            print(e)
-
+        program_mtime = self.mtime_shader()
+        if self.program_mtime < program_mtime:
+            try:
+                self.program = util.load_shaders(
+                    os.path.join(cur_path, "shaders/empty.vert"),
+                    os.path.join(cur_path, "shaders/drawkf.geom"),
+                    os.path.join(cur_path, "shaders/phong.frag"),
+                )
+                print("Recompiled")
+            except Exception as e:
+                print("failed to compile")
+                print(e)
+            self.program_mtime = program_mtime
         # Activate program
         gl.glUseProgram(self.program)
 
@@ -131,3 +135,17 @@ class OpenGLRenderer:
 
         # Draw keyframe
         gl.glDrawArrays(gl.GL_POINTS, 0, self.width_ * self.height_)
+
+    def mtime_shader(self):
+        cur_path = os.path.dirname(os.path.abspath(__file__))
+        os.path.join(cur_path, "shaders/empty.vert")
+        os.path.join(cur_path, "shaders/drawkf.geom")
+        os.path.join(cur_path, "shaders/phong.frag")
+
+        return max(
+            [
+                os.path.getmtime(os.path.join(cur_path, "shaders/empty.vert")),
+                os.path.getmtime(os.path.join(cur_path, "shaders/drawkf.geom")),
+                os.path.getmtime(os.path.join(cur_path, "shaders/phong.frag")),
+            ]
+        )
