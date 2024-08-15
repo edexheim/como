@@ -224,20 +224,22 @@ class GuiWindow:
         gl.glClearColor(0.0, 0.0, 0.0, 1.0)
 
     def get_current_cam(self):
-        proj_mat = self.widget3d.scene.camera.get_projection_matrix()
-        model_view_mat = self.widget3d.scene.camera.get_view_matrix()
-        proj_model_view_mat = proj_mat @ model_view_mat
-        T = torch.from_numpy(proj_model_view_mat)
-        return T
+        P = self.widget3d.scene.camera.get_projection_matrix()
+        V = self.widget3d.scene.camera.get_view_matrix()
+        # proj_model_view_mat = P @ V
+        # T = torch.from_numpy(proj_model_view_mat)
+        return torch.from_numpy(V), torch.from_numpy(P)  #  T = P @ V
 
-    def update_activated_renderer_state(self, kf_rgbs, kf_depths, kf_poses, T):
+    def update_activated_renderer_state(self, kf_rgbs, kf_depths, kf_poses, V, P):
         B = kf_rgbs.shape[0]
         K = self.get_intrinsics()
         for b in range(B):
-            self.g_renderer.render_keyframe(kf_rgbs[b], kf_depths[b], kf_poses[b], K, T)
+            self.g_renderer.render_keyframe(
+                kf_rgbs[b], kf_depths[b], kf_poses[b], K, V, P
+            )
 
     def render_o3d_image(self):
-        T = self.get_current_cam()
+        V, P = self.get_current_cam()
 
         glfw.poll_events()
         gl.glClearColor(0, 0, 0, 1.0)
@@ -251,7 +253,7 @@ class GuiWindow:
         # Since this is queued to be called by main thread, need to lock to avoid updates in the middle of function call
         self.kf_window_lock.acquire()
         self.update_activated_renderer_state(
-            self.kf_rgb_window, self.kf_depth_window, self.kf_poses_window, T
+            self.kf_rgb_window, self.kf_depth_window, self.kf_poses_window, V, P
         )
         self.kf_window_lock.release()
 
