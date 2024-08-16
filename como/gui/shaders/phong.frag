@@ -21,7 +21,7 @@ uniform mat4 m_model;
 uniform mat4 m_camera;
 // opengl gl left-hand, x-right, y-up, z-fwd
 uniform vec3 lightpos = vec3(0, 0.3, -1);
-uniform vec3 phong = vec3(0.5, 0.4, 3);
+uniform vec3 phong = vec3(0.6, 0.1, 1);
 uniform float spec = 3;
 uniform bool texmap = true;
 uniform bool shownormal = false;
