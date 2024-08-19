@@ -18,9 +18,13 @@ from como.utils.o3d import (
     torch_to_o3d_spheres,
     frustum_lineset,
     get_one_way_lineset,
+    get_cov_lineset
 )
 from como.utils.io import save_traj
 from como.utils.config import str_to_dtype
+
+from como.odom.backend.sparse_map import get_batch_remap_function
+import como.odom.backend.linear_system as lin_sys
 
 import OpenGL.GL as gl
 import glfw
@@ -85,6 +89,10 @@ class GuiWindow:
         self.anchor_point_slider.set_limits(-5.0, 0.0)  # Log of radius
         self.anchor_point_slider.double_value = -3.0
 
+        self.cov_top_k_slider = gui.Slider(gui.Slider.INT)
+        self.cov_top_k_slider.set_limits(0, 10)  # Log of radius
+        self.cov_top_k_slider.int_value = 0 # 3 NN since 1 is point with itself
+
         self.render_lv = gui.ListView()
         render_options = ["None", "Point Cloud", "Phong"]
         self.render_lv.set_items(render_options)
@@ -124,6 +132,9 @@ class GuiWindow:
         self.ctrl_panel.add_fixed(vspacing)
         self.ctrl_panel.add_child(gui.Label("Log10 Anchor Radius"))
         self.ctrl_panel.add_child(self.anchor_point_slider)
+        self.ctrl_panel.add_fixed(vspacing)
+        self.ctrl_panel.add_child(gui.Label("Cov Top K"))
+        self.ctrl_panel.add_child(self.cov_top_k_slider)
         self.ctrl_panel.add_fixed(vspacing)
 
         self.ctrl_panel.add_child(tab_data)
@@ -170,6 +181,11 @@ class GuiWindow:
         self.line_mat.shader = "unlitLine"
         self.line_mat.line_width = 2.0
         self.line_mat.transmission = 1.0
+
+        # Cov line mat
+        self.cov_line_mat = rendering.MaterialRecord()
+        self.cov_line_mat.shader = "unlitLine"
+        self.cov_line_mat.line_width = 1.0
 
         self.scale = 1.0
         self.base_pose = torch.eye(4)
@@ -430,6 +446,7 @@ class GuiWindow:
         one_way_pairs,
         pcd,
         kf_normals,
+        K_mm, corr_mask
     ):  # Optional arguments
         num_inducing_pts = kf_sparse_coords.shape[1]
         # colors = torch.tensor(self.cfg["inducing_point_color"], device=self.device).repeat(num_inducing_pts,1)
@@ -507,6 +524,35 @@ class GuiWindow:
             self.widget3d.scene.add_geometry("est_points", pcd, self.pcd_mat)
         else:
             self.widget3d.scene.remove_geometry("est_points")
+            
+        self.widget3d.scene.remove_geometry("cov_lineset")
+        if self.cov_top_k_slider.int_value > 0:
+          remap_variable_to_batch, paired_landmark_batch_inds = get_batch_remap_function(corr_mask)
+
+          # Separate lines for each keyframe
+          # b = K_mm.shape[0]
+          # Pwm = remap_variable_to_batch(P_sparse.unsqueeze(0).repeat(b, 1, 1), -1)
+          # cov_quantile = self.cov_quantile_slider.double_value
+          # cov_lineset = get_cov_lineset(Pwm, K_mm, cov_quantile)
+          
+          # Accumulate all covariances into one
+          b = K_mm.shape[0]
+          n = P_sparse.shape[0]
+          landmark_inds, batched_inds = paired_landmark_batch_inds
+          landmark_inds = landmark_inds[:,1].view(b, -1)
+
+          K_all = torch.zeros((n,n), device=P_sparse.device)
+          K_inds = lin_sys.row_col_to_lin_index(
+            landmark_inds[:, :, None], landmark_inds[:, None, :], n)
+          lin_sys.accumulate_hessian_scatter(K_mm.flatten(), K_all, K_inds.flatten())
+          
+          k = self.cov_top_k_slider.int_value
+          cov_lineset = get_cov_lineset(P_sparse, K_all, k)
+          num_lines = np.asarray(cov_lineset.lines).shape[0]
+          if num_lines > 0:
+            self.widget3d.scene.add_geometry(
+                "cov_lineset", cov_lineset, self.cov_line_mat
+            )
 
     def update_pose_render(self, tracked_pose):
         pose_np = tracked_pose[0, :, :].numpy()

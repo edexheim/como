@@ -157,6 +157,7 @@ class ComoMp(GuiWindow):
                     one_way_poses,
                     kf_pairs,
                     one_way_pairs,
+                    K_mm, corr_mask
                 ) = kf_viz_data
 
                 self.update_kf_vars(
@@ -189,6 +190,7 @@ class ComoMp(GuiWindow):
                         one_way_pairs,
                         pcd,
                         kf_normals,
+                        K_mm, corr_mask
                     ),
                 )
         release_data(kf_viz_data)

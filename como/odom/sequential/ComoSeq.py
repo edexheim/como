@@ -91,6 +91,7 @@ class ComoSeq(GuiWindow):
                 one_way_poses,
                 kf_pairs,
                 one_way_pairs,
+                K_mm, corr_mask
             ) = kf_viz_data
             # Storing variables to save later
             self.update_kf_vars(kf_timestamps, kf_rgbs, kf_depths, kf_poses, P_sparse)
@@ -121,6 +122,7 @@ class ComoSeq(GuiWindow):
                     one_way_pairs,
                     pcd,
                     kf_normals,
+                    K_mm, corr_mask
                 ),
             )
 

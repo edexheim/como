@@ -104,6 +104,7 @@ class Mapping:
         )  # Store but updated constantly
         self.Kmm_inv = torch.empty((0), device=self.device, dtype=self.dtype)
         self.Knm_Kmminv = torch.empty((0), device=self.device, dtype=self.dtype)
+        self.K_mm = torch.empty((0), device=self.device, dtype=self.dtype)
         # Sparse landmark variables
         self.correspondence_mask = torch.empty(
             (0), device=self.device, dtype=self.dtype
@@ -151,12 +152,12 @@ class Mapping:
         self.initialize_kf_img_vars_vars(rgb, img_and_grads, cov_params_img)
 
         # Initialize sparse pixel variables
-        Kmm_inv, L_mm, Knm_Kmminv = self.prep_predictor(cov_params_img, coords_m)
+        Kmm_inv, L_mm, Knm_Kmminv, K_mm = self.prep_predictor(cov_params_img, coords_m)
 
         depth_dim = coords_m.shape[1]
         pm = swap_coords_xy(coords_m)
         z_m = torch.exp(logz_m)
-        self.initialize_sparse_pixel_vars(pm, z_m, depth_dim, Kmm_inv, L_mm, Knm_Kmminv)
+        self.initialize_sparse_pixel_vars(pm, z_m, depth_dim, Kmm_inv, L_mm, Knm_Kmminv, K_mm)
 
         # Initialize landmark variables
         corr_mask = torch.ones((1, depth_dim), device=self.device, dtype=torch.bool)
@@ -205,7 +206,7 @@ class Mapping:
         Pw_m_new, _, _ = transform_points(kf_pose_init, Pc_m_new)
         Pw_m_new = Pw_m_new.squeeze(0)
 
-        Kmm_inv, L_mm, Knm_Kmminv = self.prep_predictor(cov_params_img, coords_m)
+        Kmm_inv, L_mm, Knm_Kmminv, K_mm = self.prep_predictor(cov_params_img, coords_m)
         pm_first_obs = swap_coords_xy(coords_m)
         new_depth_dim = coords_m_new.shape[1]
 
@@ -215,7 +216,7 @@ class Mapping:
         self.initialize_pose_vars(kf_pose_init, kf_aff_init)
         self.initialize_kf_img_vars_vars(rgb, img_and_grads, cov_params_img)
         self.initialize_sparse_pixel_vars(
-            pm_first_obs, zm_first_obs, new_depth_dim, Kmm_inv, L_mm, Knm_Kmminv
+            pm_first_obs, zm_first_obs, new_depth_dim, Kmm_inv, L_mm, Knm_Kmminv, K_mm
         )
         self.initialize_sparse_landmark_vars(corr_mask, Pw_m_new)
 
@@ -292,7 +293,7 @@ class Mapping:
 
     # Sparse vars in pixel space (batched per image, dim max num pixels)
     def initialize_sparse_pixel_vars(
-        self, pm_first_obs, zm_first_obs, new_depth_dim, Kmm_inv, L_mm, Knm_Kmminv
+        self, pm_first_obs, zm_first_obs, new_depth_dim, Kmm_inv, L_mm, Knm_Kmminv, K_mm
     ):
         kf_start_ind = self.get_kf_start_window_ind()
 
@@ -314,6 +315,7 @@ class Mapping:
         self.window_cat_helper_tensor(self.Kmm_inv, Kmm_inv, kf_start_ind)
         self.window_cat_helper_tensor(self.L_mm, L_mm, kf_start_ind)
         self.window_cat_helper_tensor(self.Knm_Kmminv, Knm_Kmminv, kf_start_ind)
+        self.window_cat_helper_tensor(self.K_mm, K_mm, kf_start_ind)
 
         return
 
@@ -465,7 +467,7 @@ class Mapping:
                 Knm_Kmminv, (b, photo_img_size[0], photo_img_size[1], -1)
             )
 
-        return K_mm_inv, L_mm, Knm_Kmminv
+        return K_mm_inv, L_mm, Knm_Kmminv, K_mm
 
     def window_cat_helper_tensor(self, var, new_var, i):
         var.set_(torch.cat((var[i:, ...], new_var), dim=0))
@@ -528,6 +530,9 @@ class Mapping:
         P_sparse = self.P_m.clone()
         obs_ref_mask = self.obs_ref_mask.clone()
 
+        K_mm = self.K_mm.clone()
+        corr_mask = self.correspondence_mask.clone()
+
         self.last_kf_send_time = time.time()
 
         return (
@@ -541,6 +546,8 @@ class Mapping:
             rec_poses,
             kf_pairs,
             one_way_pairs,
+            K_mm,
+            corr_mask
         )
 
     def attempt_two_frame_init(self, timestamp, rgb):

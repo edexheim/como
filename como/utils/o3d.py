@@ -2,6 +2,8 @@ import torch
 import open3d as o3d
 import numpy as np
 import cv2
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 from como.utils.image_processing import ImageGradientModule
 from como.utils.coords import get_coord_img
@@ -252,6 +254,68 @@ def get_traj_lineset(
     lineset.paint_uniform_color(color)
     return lineset
 
+
+def get_cov_lineset(P, K_mm, k):
+    
+    # cov_thresh = torch.quantile(K_mm.flatten(), q=cov_quantile)
+
+    # cov_max = torch.max(K_mm[K_mm < K_mm[0,0,0]]) # Exclude diagonal
+    # cov_max = torch.max(K_mm)
+    # cov_min = torch.min(K_mm)
+    # cov_min = min(cov_thresh, cov_max-1e-6)
+
+    lineset = o3d.geometry.LineSet()
+    all_cov_vals = np.empty((0,))
+    # for b in range(P.shape[0]):
+
+    # lineset_b = o3d.geometry.LineSet()
+
+    points_np = P.numpy().astype(np.double)
+
+    # triu_inds = torch.triu_indices(row=K_mm.shape[0], col=K_mm.shape[1], offset=1) # exclude diagoonal
+    topk_ret = torch.topk(K_mm, k=k, dim=1)
+    col_inds = topk_ret.indices
+    row_inds = torch.arange(K_mm.shape[0])[:,None].repeat(1,k)
+    inds = torch.stack((row_inds.flatten(), col_inds.flatten()), dim=0)
+
+    lines_np = (inds.mT).numpy()
+    
+    cov_vals = K_mm[inds[0,:],inds[1,:]]
+
+    # TODO: Can also use lognorm?
+    cov_min = torch.min(cov_vals)
+    cov_max = torch.max(cov_vals)
+    color_norm = mpl.colors.LogNorm(vmin=cov_min, vmax=cov_max)
+    cmap = plt.cm.get_cmap("jet")
+
+    cov_vals_np = cov_vals.numpy()
+    cm_norm_vals = color_norm(cov_vals_np)
+    colors_np = cmap(cm_norm_vals)[:,:3] # No alpha in Open3D
+
+    # Threshold out low cov
+    # mask = cov_vals > cov_thresh
+    # print(mask.numel(), torch.sum(mask))
+    # lines_np = lines_np[mask,:]
+    # colors_np = colors_np[mask,:]
+    # cov_vals_np = cov_vals_np[mask]
+
+    lineset.points = o3d.utility.Vector3dVector(points_np)
+    lineset.lines = o3d.utility.Vector2iVector(lines_np)
+    lineset.colors = o3d.utility.Vector3dVector(colors_np)
+    # lineset_b.cov_vals = o3d.utility.Vector3dVector(cov_vals_np)
+    all_cov_vals = np.concatenate((all_cov_vals, cov_vals_np))
+
+    # lineset += lineset_b
+
+    # Check for duplicates and take maximum cov
+    # all_lines = np.asarray(lineset.lines)
+    # unique_lines, inds = np.unique(all_lines, return_index=True, axis=0)
+    # print(unique_lines.shape)
+    # print(all_lines.shape, all_cov_vals.shape)
+    # print(all_lines)
+
+    return lineset
+    
 
 # NOTE: Assumes canonical world frame direction from first pose
 def pose_to_camera_setup(pose, pose_init, scale):
