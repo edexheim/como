@@ -76,9 +76,9 @@ class GuiWindow:
         base_pose_button.vertical_padding_em = 0.0
         base_pose_button.set_on_clicked(self._on_press2)
 
-        save_traj_button = gui.Button("Save traj")
-        save_traj_button.vertical_padding_em = 0.0
-        save_traj_button.set_on_clicked(self._on_press3)
+        # save_traj_button = gui.Button("Save traj")
+        # save_traj_button.vertical_padding_em = 0.0
+        # save_traj_button.set_on_clicked(self._on_press3)
 
         # Geometry visualization
         self.anchor_point_slider = gui.Slider(gui.Slider.DOUBLE)
@@ -119,8 +119,8 @@ class GuiWindow:
         self.ctrl_panel.add_child(base_pose_button)
         self.ctrl_panel.add_fixed(vspacing)
         self.ctrl_panel.add_child(self.render_lv)
-        self.ctrl_panel.add_fixed(vspacing)
-        self.ctrl_panel.add_child(save_traj_button)
+        # self.ctrl_panel.add_fixed(vspacing)
+        # self.ctrl_panel.add_child(save_traj_button)
         self.ctrl_panel.add_fixed(vspacing)
         self.ctrl_panel.add_child(gui.Label("Log10 Anchor Radius"))
         self.ctrl_panel.add_child(self.anchor_point_slider)
@@ -275,7 +275,7 @@ class GuiWindow:
         self.advance_one_frame = True
 
     def _on_press2(self):
-        self.base_pose = self.est_poses[-1]
+        self.base_pose = self.last_pose
 
     def _on_press3(self):
         self.save_traj()
@@ -336,35 +336,35 @@ class GuiWindow:
         self.P_window = P
         self.kf_window_lock.release()
 
-        # Full history
-        kf_timestamps_tensor = torch.as_tensor(kf_timestamps, dtype=torch.double)
+        # # Full history
+        # kf_timestamps_tensor = torch.as_tensor(kf_timestamps, dtype=torch.double)
 
-        # Handle first one
-        if self.kf_timestamps[0] < 0.0:
-            self.kf_window_start_ind = 0
-        elif kf_timestamps_tensor[0] != self.kf_timestamps[self.kf_window_start_ind]:
-            self.kf_window_start_ind += 1
+        # # Handle first one
+        # if self.kf_timestamps[0] < 0.0:
+        #     self.kf_window_start_ind = 0
+        # elif kf_timestamps_tensor[0] != self.kf_timestamps[self.kf_window_start_ind]:
+        #     self.kf_window_start_ind += 1
 
-        i = self.kf_window_start_ind
-        self.kf_window_end_ind = i + kf_timestamps_tensor.shape[0]
-        j = self.kf_window_end_ind
+        # i = self.kf_window_start_ind
+        # self.kf_window_end_ind = i + kf_timestamps_tensor.shape[0]
+        # j = self.kf_window_end_ind
 
-        self.kf_timestamps[i:j] = kf_timestamps_tensor
-        self.kf_rgb[i:j] = kf_rgb
-        self.kf_depth[i:j] = kf_depth
-        self.kf_poses[i:j] = kf_poses
+        # self.kf_timestamps[i:j] = kf_timestamps_tensor
+        # self.kf_rgb[i:j] = kf_rgb
+        # self.kf_depth[i:j] = kf_depth
+        # self.kf_poses[i:j] = kf_poses
 
         self.P = P
 
-    def save_traj(self):
-        if self.dataloader.dataset.seq_path is not None:
-            filename = "./results/" + self.dataloader.dataset.save_traj_name + ".txt"
-            j = self.kf_window_end_ind
-            kf_timestamps = self.kf_timestamps[:j].tolist()
-            kf_poses = self.kf_poses[:j]
-            save_traj(filename, kf_timestamps, kf_poses)
+    # def save_traj(self):
+    #     if self.dataloader.dataset.seq_path is not None:
+    #         filename = "./results/" + self.dataloader.dataset.save_traj_name + ".txt"
+    #         j = self.kf_window_end_ind
+    #         kf_timestamps = self.kf_timestamps[:j].tolist()
+    #         kf_poses = self.kf_poses[:j]
+    #         save_traj(filename, kf_timestamps, kf_poses)
 
-            print("Saved trajectory.")
+    #         print("Saved trajectory.")
 
     def _on_start(self):
         pass
@@ -372,7 +372,7 @@ class GuiWindow:
     def _on_close(self):
         self.is_done = True
 
-        self.save_traj()
+        # self.save_traj()
 
         return True
 
@@ -539,22 +539,23 @@ class GuiWindow:
         )
 
         # Record Data
-        self.timestamps = []
-        self.est_poses = np.array([]).reshape(0, 4, 4)
+        # self.timestamps = []
+        # self.est_poses = np.array([]).reshape(0, 4, 4)
+        self.last_pose = None
 
         # KF Data
-        kf_buffer_size = 512
-        h, w = self.get_img_size()
-        self.kf_timestamps = -torch.ones(
-            kf_buffer_size, device=self.device, dtype=torch.double
-        )
-        self.kf_rgb = -torch.ones((kf_buffer_size, 3, h, w), device=self.device)
-        self.kf_depth = -torch.ones((kf_buffer_size, 1, h, w), device=self.device)
-        self.kf_poses = -torch.ones(
-            (kf_buffer_size, 4, 4), device=self.device, dtype=torch.double
-        )
-        self.P = -torch.ones((0), device=self.device, dtype=torch.double)
-        self.kf_window_end_ind = None
+        # kf_buffer_size = 512
+        # h, w = self.get_img_size()
+        # self.kf_timestamps = -torch.ones(
+        #     kf_buffer_size, device=self.device, dtype=torch.double
+        # )
+        # self.kf_rgb = -torch.ones((kf_buffer_size, 3, h, w), device=self.device)
+        # self.kf_depth = -torch.ones((kf_buffer_size, 1, h, w), device=self.device)
+        # self.kf_poses = -torch.ones(
+        #     (kf_buffer_size, 4, 4), device=self.device, dtype=torch.double
+        # )
+        # self.P = -torch.ones((0), device=self.device, dtype=torch.double)
+        # self.kf_window_end_ind = None
 
         # Main loop
         fps_interval_len = 30

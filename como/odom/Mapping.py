@@ -50,12 +50,16 @@ class Mapping:
 
         self.intrinsics = intrinsics.unsqueeze(0)
 
-        self.is_init = False
-
     def setup(self):
         init_gpu(self.device)
-        self.init_basic_vars()
         self.load_model()
+
+        self.reset()
+        return
+
+    def reset(self):
+        self.is_init = False
+        self.init_basic_vars()
         self.init_keyframe_vars()
         self.init_prior_vals()
         self.reset_iteration_vars(new_kf=True, converged=True)
@@ -554,6 +558,7 @@ class Mapping:
             mean_log_depth,
         ) = self.two_frame_sfm.handle_frame(rgb, timestamp)
         if self.is_init:
+            print("Map initialized")
             # Initialize reference keyframe
             self.init_keyframe(
                 self.two_frame_sfm.rgb,

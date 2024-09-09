@@ -27,7 +27,7 @@ class ComoMp(GuiWindow):
         self.mapping = MappingMp(slam_cfg["mapping"], intrinsics, self.waitev)
         # Setup queues
         rgb_queue = TupleTensorQueue(
-            self.tracking.device, self.tracking.dtype, maxsize=5
+            self.tracking.device, self.tracking.dtype, maxsize=1
         )
         pose_viz_queue = TupleTensorQueue(self.device, self.dtype)  # Only want recent
         frame_queue = TupleTensorQueue(
@@ -117,18 +117,34 @@ class ComoMp(GuiWindow):
             self.window, lambda: self.update_curr_image_render(rgb)
         )
 
+        def reset_scene():
+            # Clear geometries and background
+            self.widget3d.scene.clear_geometry()
+            self.widget3d.scene.set_background([1, 1, 1, 0])
+            
+            # Clear queues
+            self.tracking_pose_queue.pop_until_latest(block=False)
+            self.kf_viz_queue.pop_until_latest(block=False)
+
+
         # Receive pose from tracking
         track_data_viz = self.tracking_pose_queue.pop_until_latest(
             block=False, timeout=0.01
         )
         if track_data_viz is not None:
-            if track_data_viz[0] == "end":
+            if track_data_viz[0] == "reset":
+                print("Viz tracking reset")
+                # Clear geometries and background
+                gui.Application.instance.post_to_main_thread(
+                    self.window, reset_scene)
+            elif track_data_viz[0] == "end":
                 self.tracking_done = True
             else:
                 tracked_timestamp, tracked_pose = track_data_viz
                 # Record data
-                self.timestamps.append(tracked_timestamp)
-                self.est_poses = np.concatenate((self.est_poses, tracked_pose))
+                # self.timestamps.append(tracked_timestamp)
+                # self.est_poses = np.concatenate((self.est_poses, tracked_pose))
+                self.last_pose = tracked_pose[0].clone().numpy()
                 # Visualize tracked pose
                 gui.Application.instance.post_to_main_thread(
                     self.window, lambda: self.update_pose_render(tracked_pose)
@@ -143,7 +159,13 @@ class ComoMp(GuiWindow):
         # Receive keyframes from mapping
         kf_viz_data = self.kf_viz_queue.pop_until_latest(block=False, timeout=0.01)
         if kf_viz_data is not None:
-            if kf_viz_data[0] == "end":
+            if kf_viz_data[0] == "reset":
+                print("Viz mapping reset")
+                # Clear geometries and background
+                gui.Application.instance.post_to_main_thread(
+                    self.window, reset_scene)
+                
+            elif kf_viz_data[0] == "end":
                 self.mapping_done = True
             else:
                 (

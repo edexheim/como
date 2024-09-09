@@ -1,4 +1,5 @@
 import time
+import torch
 import torch.multiprocessing as mp
 
 from como.utils.multiprocessing import release_data
@@ -9,6 +10,28 @@ class MappingMp(Mapping, mp.Process):
     def __init__(self, cfg, intrinsics, waitev):
         super().__init__(cfg, intrinsics)
         self.waitev = waitev
+
+    def check_failure(self, kf_ref_data):
+        # Check for NaN
+        failed = False
+
+        if kf_ref_data is not None:
+            for data in kf_ref_data:
+                if torch.is_tensor(data):
+                    if data.isnan().any():
+                        failed = True
+                        break
+            
+            if failed:
+                print("Reset Mapping")
+                # Reset
+                self.reset()
+
+                # Propagate up queue
+                self.frame_queue.push(("reset",))
+                self.kf_viz_queue.push(("reset",))
+        
+        return failed
 
     def run(self):
         while True:
@@ -26,6 +49,8 @@ class MappingMp(Mapping, mp.Process):
                     kf_viz_data, kf_updated = self.handle_tracking_data(data)
                     if kf_viz_data is not None:
                         self.kf_viz_queue.push(kf_viz_data)
+                    elif data[0] == "reset":
+                        self.reset()
                     elif data[0] == "end":
                         break
                 release_data(data)

@@ -2,7 +2,7 @@ name: Depth odom config
 
 # Tracking
 tracking:
-  device: cuda:0
+  device: cpu
   dtype: float
   color: gray # rgb, gray
   pyr:
@@ -24,7 +24,7 @@ tracking:
 
 # Mapping
 mapping:
-  device: cuda:1
+  device: cuda:0
   dtype: double
   color: gray # rgb, gray
   model_path: models/scannet.ckpt

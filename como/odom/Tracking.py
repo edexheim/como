@@ -29,13 +29,17 @@ class Tracking:
         self.intrinsics = intrinsics
         self.img_size = img_size
 
-        self.mapping_init = False
-
     def track(self, data):
         raise NotImplementedError
 
     def setup(self):
         init_gpu(self.device)
+        
+        self.reset()
+        return
+
+    def reset(self):
+        self.mapping_init = False
         self.init_basic_vars()
         self.init_kf_vars()
         self.reset_one_way_vars()
