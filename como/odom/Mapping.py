@@ -70,6 +70,7 @@ class Mapping:
             self.cov_level,
             self.network_size,
         )
+        torch.cuda.empty_cache()
 
     def init_basic_vars(self):
         if self.cfg["color"] == "gray":

@@ -188,6 +188,15 @@ class GuiWindow:
 
         # Locks for thread safety
         self.kf_window_lock = threading.Lock()
+        
+        self.update_curr_image_lock = threading.Lock()
+        self.update_curr_image_done = True
+        self.update_pose_render_lock = threading.Lock()
+        self.update_pose_render_done = True
+        self.render_o3d_lock = threading.Lock()
+        self.render_o3d_done = True
+        self.update_keyframe_lock = threading.Lock()
+        self.update_keyframe_done = True
 
         # Start running
         threading.Thread(name="UpdateMain", target=self.update_main).start()
@@ -269,6 +278,10 @@ class GuiWindow:
         # Set background to render
         self.widget3d.scene.set_background([0, 0, 0, 1], render_img)
 
+        # self.render_o3d_lock.acquire()
+        self.render_o3d_done = True
+        # self.render_o3d_lock.release()
+
         return
 
     def _on_press(self):
@@ -333,7 +346,7 @@ class GuiWindow:
         self.kf_rgb_window = kf_rgb
         self.kf_depth_window = kf_depth
         self.kf_poses_window = kf_poses
-        self.P_window = P
+        self.P = P
         self.kf_window_lock.release()
 
         # # Full history
@@ -353,8 +366,6 @@ class GuiWindow:
         # self.kf_rgb[i:j] = kf_rgb
         # self.kf_depth[i:j] = kf_depth
         # self.kf_poses[i:j] = kf_poses
-
-        self.P = P
 
     # def save_traj(self):
     #     if self.dataloader.dataset.seq_path is not None:
@@ -415,6 +426,12 @@ class GuiWindow:
     def update_curr_image_render(self, rgb):
         rgb_o3d = torch_to_o3d_rgb(rgb[0, ...])
         self.curr_rgb_w.update_image(rgb_o3d.to_legacy())
+
+        # self.update_curr_image_lock.acquire()
+        self.update_curr_image_done = True
+        # self.update_curr_image_lock.release()
+
+        return
 
     def update_keyframe_render(
         self,
@@ -508,6 +525,12 @@ class GuiWindow:
         else:
             self.widget3d.scene.remove_geometry("est_points")
 
+        # self.update_keyframe_lock.acquire()
+        self.update_keyframe_done = True
+        # self.update_keyframe_lock.release()
+
+        return
+
     def update_pose_render(self, tracked_pose):
         pose_np = tracked_pose[0, :, :].numpy()
         est_traj_geo = frustum_lineset(
@@ -524,6 +547,12 @@ class GuiWindow:
             self.setup_camera_view(pose_np, self.base_pose)
         else:
             pass
+
+        # self.update_pose_render_lock.acquire()
+        self.update_pose_render_done = True
+        # self.update_pose_render_lock.release()
+
+        return
 
     def update_main(self):
         self.start_slam_processes()

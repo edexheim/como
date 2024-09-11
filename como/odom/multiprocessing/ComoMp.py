@@ -110,12 +110,27 @@ class ComoMp(GuiWindow):
         return self.timestamp, rgb
 
     def iter(self, timestamp, rgb):
+
+        # t1 = time.time()
+
         # Send input data to tracking and visualization
         track_data_in = (timestamp, rgb.clone())
         self.rgb_queue.push(track_data_in)  # Blocking until queue has spot
-        gui.Application.instance.post_to_main_thread(
-            self.window, lambda: self.update_curr_image_render(rgb)
-        )
+
+        # t2 = time.time()
+        
+        # self.update_curr_image_lock.acquire()
+        update_curr_image_done = self.update_curr_image_done
+        # self.update_curr_image_lock.release()
+        if update_curr_image_done:
+            # self.update_curr_image_lock.acquire()
+            self.update_curr_image_done = False
+            # self.update_curr_image_lock.release()
+            gui.Application.instance.post_to_main_thread(
+                self.window, lambda: self.update_curr_image_render(rgb)
+            )
+
+        # t3 = time.time()
 
         def reset_scene():
             # Clear geometries and background
@@ -126,11 +141,13 @@ class ComoMp(GuiWindow):
             self.tracking_pose_queue.pop_until_latest(block=False)
             self.kf_viz_queue.pop_until_latest(block=False)
 
-
         # Receive pose from tracking
         track_data_viz = self.tracking_pose_queue.pop_until_latest(
             block=False, timeout=0.01
         )
+
+        # t4 = time.time()
+
         if track_data_viz is not None:
             if track_data_viz[0] == "reset":
                 print("Viz tracking reset")
@@ -145,19 +162,42 @@ class ComoMp(GuiWindow):
                 # self.timestamps.append(tracked_timestamp)
                 # self.est_poses = np.concatenate((self.est_poses, tracked_pose))
                 self.last_pose = tracked_pose[0].clone().numpy()
+                
                 # Visualize tracked pose
-                gui.Application.instance.post_to_main_thread(
-                    self.window, lambda: self.update_pose_render(tracked_pose)
-                )
+                # self.update_pose_render_lock.acquire()
+                update_pose_render_done = self.update_pose_render_done
+                # self.update_pose_render_lock.release()
+                if update_pose_render_done:
+                    # self.update_pose_render_lock.acquire()
+                    self.update_pose_render_done = False
+                    # self.update_pose_render_lock.release()
+                    gui.Application.instance.post_to_main_thread(
+                        self.window, lambda: self.update_pose_render(tracked_pose)
+                    )
+
                 # Visualize background using shaders if using
                 if self.render_val == "Phong":
-                    gui.Application.instance.post_to_main_thread(
-                        self.window, lambda: self.render_o3d_image()
-                    )
+                    # self.render_o3d_lock.acquire()
+                    render_o3d_done = self.render_o3d_done
+                    # self.render_o3d_lock.release()
+                    if render_o3d_done:
+                        # self.render_o3d_lock.acquire()
+                        self.render_o3d_done = False
+                        # self.render_o3d_lock.release()
+                        # Visualize background using shaders if using
+                        gui.Application.instance.post_to_main_thread(
+                            self.window, lambda: self.render_o3d_image()
+                        )
+        
         release_data(track_data_viz)
+
+        # t5 = time.time()
 
         # Receive keyframes from mapping
         kf_viz_data = self.kf_viz_queue.pop_until_latest(block=False, timeout=0.01)
+
+        # t6 = time.time()
+
         if kf_viz_data is not None:
             if kf_viz_data[0] == "reset":
                 print("Viz mapping reset")
@@ -196,23 +236,41 @@ class ComoMp(GuiWindow):
                         self.cfg["cos_thresh"],
                     )
 
-                gui.Application.instance.post_to_main_thread(
-                    self.window,
-                    lambda: self.update_keyframe_render(
-                        kf_timestamps,
-                        kf_rgbs,
-                        kf_poses,
-                        kf_depths,
-                        kf_sparse_coords,
-                        P_sparse,
-                        obs_ref_mask,
-                        one_way_poses,
-                        kf_pairs,
-                        one_way_pairs,
-                        pcd,
-                        kf_normals,
-                    ),
-                )
+                # self.update_keyframe_lock.acquire()
+                update_keyframe_done = self.update_keyframe_done
+                # self.update_keyframe_lock.release()
+                if update_keyframe_done:
+                    # self.update_keyframe_lock.acquire()
+                    self.update_keyframe_done = False
+                    # self.update_keyframe_lock.release()
+                    gui.Application.instance.post_to_main_thread(
+                        self.window,
+                        lambda: self.update_keyframe_render(
+                            kf_timestamps,
+                            kf_rgbs,
+                            kf_poses,
+                            kf_depths,
+                            kf_sparse_coords,
+                            P_sparse,
+                            obs_ref_mask,
+                            one_way_poses,
+                            kf_pairs,
+                            one_way_pairs,
+                            pcd,
+                            kf_normals,
+                        ),
+                    )
+
         release_data(kf_viz_data)
+
+        # t7 = time.time()
+
+        # print("Idx: ", self.idx)
+        # print(t2-t1)
+        # print(t3-t2)
+        # print(t4-t3)
+        # print(t5-t4)
+        # print(t6-t5)
+        # print(t7-t6)
 
         return

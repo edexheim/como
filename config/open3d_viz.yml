@@ -25,3 +25,7 @@ one_way_color: [0.0, 0.0, 0.1]
 
 inducing_point_radius: 3
 inducing_point_color: [0.0, 0.0, 1.0]
+
+curr_image_interval: 0.03
+curr_pose_interval: 0.03 # Also OpenGL rendering
+kf_interval: 0.03

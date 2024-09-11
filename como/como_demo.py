@@ -10,6 +10,7 @@ import argparse
 
 def main(dataset):
     torch.manual_seed(0)
+    # torch.set_num_threads(1)
 
     ## Parameters
     with open("./config/open3d_viz.yml", "r") as file:

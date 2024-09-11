@@ -44,6 +44,7 @@ class Tracking:
         self.init_kf_vars()
         self.reset_one_way_vars()
         self.T_w_rec_last = None
+        torch.cuda.empty_cache()
         return
 
     def init_basic_vars(self):
