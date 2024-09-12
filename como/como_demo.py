@@ -8,9 +8,15 @@ import yaml
 import argparse
 
 
+import os
+
 def main(dataset):
     torch.manual_seed(0)
     # torch.set_num_threads(1)
+
+    # NOTE: Very important to stop CPU usage from becoming huge for no reason...
+    os.environ["OMP_WAIT_POLICY"] = "PASSIVE"
+    # print(os.environ["OMP_WAIT_POLICY"])
 
     ## Parameters
     with open("./config/open3d_viz.yml", "r") as file:

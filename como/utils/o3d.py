@@ -256,9 +256,9 @@ def get_traj_lineset(
 # NOTE: Assumes canonical world frame direction from first pose
 def pose_to_camera_setup(pose, pose_init, scale):
     # Assume original negative y axis is up
-    up_global = -pose_init[:3, 1]
+    # up_global = -pose_init[:3, 1]
     # up_global = np.array([0, 0, 1.0])
-    # up_global = pose[:3,1]
+    up_global = -pose[:3,1]
 
     # Camera coordinates
     center = scale * np.array([0, 0.0, 0.5])  # Point camera is looking at

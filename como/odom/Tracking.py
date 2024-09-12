@@ -248,7 +248,6 @@ class Tracking:
         # Compute variables involving geometry regardless
         self.P_pyr = []
         self.dI_dT_pyr = []
-        self.mask_pyr = []
         depth_pyr = self.depth_pyr_module(depth)
         for i in range(len(depth_pyr)):
             test_coords = self.coords_pyr[i]
@@ -274,44 +273,12 @@ class Tracking:
             )  # Transform points from any kf to last kf
             P_all, _, _ = transform_points(rel_poses, P)  # (B,N,3)
 
-            # Only use points that project close to camera boundaries and in front
-            # NOTE: In theory this can be outside the FoV of the camera, but want to avoid very bad points
-            p_all, _ = projection(self.intrinsics_pyr[i], P_all)
-
-            def get_valid_reproj_mask(p, depth, img_size, img_border, depth_thresh):
-                valid_x = torch.logical_and(
-                    p[:, :, 0] >= -img_border,
-                    p[:, :, 0] <= img_size[-1] - 1 + img_border,
-                )
-                valid_y = torch.logical_and(
-                    p[:, :, 1] >= -img_border,
-                    p[:, :, 1] <= img_size[-2] - 1 + img_border,
-                )
-                valid_mask = torch.logical_and(valid_x, valid_y)
-                valid_mask = torch.logical_and(
-                    valid_mask, depth[:, :, 0] > depth_thresh
-                )
-                return valid_mask
-
-            mask = get_valid_reproj_mask(
-                p_all,
-                P_all[
-                    :,
-                    :,
-                    2:3,
-                ],
-                depth_pyr[i].shape[-2:],
-                img_border=50,
-                depth_thresh=1e-4,
-            )
-
             dI_dT = precalc_jacobians(
                 self.img_grads_pyr[i], P_all, self.vals_pyr[i], self.intrinsics_pyr[i]
             )
 
             self.P_pyr.append(P_all)
             self.dI_dT_pyr.append(dI_dT)
-            self.mask_pyr.append(mask)
 
         num_kf = kf_pose.shape[0]
         self.kf_received_ts = timestamps[-1]
@@ -329,7 +296,6 @@ class Tracking:
             self.vals_pyr,
             self.P_pyr,
             self.dI_dT_pyr,
-            self.mask_pyr,
             self.intrinsics_pyr,
             img_pyr,
             self.cfg["sigmas"]["photo"],

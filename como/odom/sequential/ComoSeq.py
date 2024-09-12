@@ -55,8 +55,8 @@ class ComoSeq(GuiWindow):
             track_data_viz = transfer_data(track_data_viz, self.device, self.dtype)
             tracked_timestamp, tracked_pose = track_data_viz
             # Record data
-            self.timestamps.append(tracked_timestamp)
-            self.est_poses = np.concatenate((self.est_poses, tracked_pose))
+            # self.timestamps.append(tracked_timestamp)
+            # self.est_poses = np.concatenate((self.est_poses, tracked_pose))
             # Visualize tracked pose
             gui.Application.instance.post_to_main_thread(
                 self.window, lambda: self.update_pose_render(tracked_pose)

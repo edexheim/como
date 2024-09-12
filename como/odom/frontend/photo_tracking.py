@@ -13,7 +13,6 @@ def photo_tracking_pyr(
     vals_i,
     Pi,
     dI_dT,
-    masks,
     intrinsics,
     img_j,
     photo_sigma,
@@ -23,10 +22,9 @@ def photo_tracking_pyr(
     aff = aff_init.clone()
     num_levels = len(vals_i)
     for l in range(num_levels):
-        mask_l = masks[l]
-        vals_l = vals_i[l][None, mask_l, :]
-        P_l = Pi[l][None, mask_l, :]
-        dI_dT_l = dI_dT[l][None, mask_l, :, :]
+        vals_l = vals_i[l]
+        P_l = Pi[l]
+        dI_dT_l = dI_dT[l]
         Tji, aff = photo_level_tracking(
             Tji,
             aff,

@@ -5,6 +5,8 @@ import numpy as np
 
 import time
 
+import os
+
 from como.gui.GuiWindow import GuiWindow
 from como.odom.multiprocessing.TrackingMp import TrackingMp
 from como.odom.multiprocessing.MappingMp import MappingMp
@@ -15,6 +17,8 @@ from como.utils.o3d import rgb_depth_to_pcd
 class ComoMp(GuiWindow):
     def __init__(self, viz_cfg, slam_cfg, dataset):
         super().__init__(viz_cfg, slam_cfg, dataset)
+
+        # print(os.environ["OMP_WAIT_POLICY"])
 
     def setup_slam_processes(self, slam_cfg):
         # Setup SLAM processes
@@ -27,7 +31,7 @@ class ComoMp(GuiWindow):
         self.mapping = MappingMp(slam_cfg["mapping"], intrinsics, self.waitev)
         # Setup queues
         rgb_queue = TupleTensorQueue(
-            self.tracking.device, self.tracking.dtype, maxsize=1
+            self.tracking.device, self.tracking.dtype, maxsize=30
         )
         pose_viz_queue = TupleTensorQueue(self.device, self.dtype)  # Only want recent
         frame_queue = TupleTensorQueue(
@@ -111,7 +115,11 @@ class ComoMp(GuiWindow):
 
     def iter(self, timestamp, rgb):
 
+        # time.sleep(0.01)
+
         # t1 = time.time()
+
+        # TODO: Skip frame if full?
 
         # Send input data to tracking and visualization
         track_data_in = (timestamp, rgb.clone())
@@ -138,12 +146,13 @@ class ComoMp(GuiWindow):
             self.widget3d.scene.set_background([1, 1, 1, 0])
             
             # Clear queues
-            self.tracking_pose_queue.pop_until_latest(block=False)
-            self.kf_viz_queue.pop_until_latest(block=False)
+            self.tracking_pose_queue.pop_until_latest(block=True, timeout=0.001)
+            self.kf_viz_queue.pop_until_latest(block=True, timeout=0.001)
 
         # Receive pose from tracking
+        # print("Track viz queue: ", self.tracking_pose_queue.qsize())
         track_data_viz = self.tracking_pose_queue.pop_until_latest(
-            block=False, timeout=0.01
+            block=True, timeout=0.001
         )
 
         # t4 = time.time()
@@ -194,7 +203,8 @@ class ComoMp(GuiWindow):
         # t5 = time.time()
 
         # Receive keyframes from mapping
-        kf_viz_data = self.kf_viz_queue.pop_until_latest(block=False, timeout=0.01)
+        # print("KF viz queue: ", self.kf_viz_queue.qsize())
+        kf_viz_data = self.kf_viz_queue.pop_until_latest(block=True, timeout=0.001)
 
         # t6 = time.time()
 
@@ -263,9 +273,11 @@ class ComoMp(GuiWindow):
 
         release_data(kf_viz_data)
 
+        # time.sleep(0.01)
+
         # t7 = time.time()
 
-        # print("Idx: ", self.idx)
+        # print("Idx: ", self.idx, "RGB push: ", t2-t1)
         # print(t2-t1)
         # print(t3-t2)
         # print(t4-t3)

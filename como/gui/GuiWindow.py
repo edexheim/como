@@ -248,6 +248,8 @@ class GuiWindow:
             )
 
     def render_o3d_image(self):
+        # t1 = time.time()
+
         V, P = self.get_current_cam()
 
         glfw.poll_events()
@@ -281,6 +283,9 @@ class GuiWindow:
         # self.render_o3d_lock.acquire()
         self.render_o3d_done = True
         # self.render_o3d_lock.release()
+
+        # t2 = time.time()
+        # print("render_o3d: ", t2-t1)
 
         return
 
@@ -341,6 +346,8 @@ class GuiWindow:
         self.follow_tracking = is_on
 
     def update_kf_vars(self, kf_timestamps, kf_rgb, kf_depth, kf_poses, P):
+        # t1 = time.time()
+
         # Local window for visualization - Need to lock since used for shading
         self.kf_window_lock.acquire()
         self.kf_rgb_window = kf_rgb
@@ -348,6 +355,9 @@ class GuiWindow:
         self.kf_poses_window = kf_poses
         self.P = P
         self.kf_window_lock.release()
+
+        # t2 = time.time()
+        # print("update_kf_vars: ", t2-t1)
 
         # # Full history
         # kf_timestamps_tensor = torch.as_tensor(kf_timestamps, dtype=torch.double)
@@ -448,6 +458,9 @@ class GuiWindow:
         pcd,
         kf_normals,
     ):  # Optional arguments
+
+        # t1 = time.time()
+
         num_inducing_pts = kf_sparse_coords.shape[1]
         # colors = torch.tensor(self.cfg["inducing_point_color"], device=self.device).repeat(num_inducing_pts,1)
         colors_old = torch.tensor([0.0, 0.0, 1.0], device=self.device)
@@ -529,6 +542,9 @@ class GuiWindow:
         self.update_keyframe_done = True
         # self.update_keyframe_lock.release()
 
+        # t2 = time.time()
+        # print("update_kf_render: ", t2-t1)
+
         return
 
     def update_pose_render(self, tracked_pose):
@@ -539,6 +555,9 @@ class GuiWindow:
             pose_np,
             scale=self.frumstum_scale,
         )
+
+        # t1 = time.time()
+
         est_traj_geo.paint_uniform_color(self.cfg["tracking_color"])
         self.widget3d.scene.remove_geometry("est_traj")
         self.widget3d.scene.add_geometry("est_traj", est_traj_geo, self.line_mat)
@@ -551,6 +570,9 @@ class GuiWindow:
         # self.update_pose_render_lock.acquire()
         self.update_pose_render_done = True
         # self.update_pose_render_lock.release()
+
+        # t2 = time.time()
+        # print("update_pose_render: ", t2-t1)
 
         return
 
