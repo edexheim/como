@@ -17,6 +17,7 @@ from como.utils.coords import swap_coords_xy, get_test_coords, fill_image
 
 from como.utils.multiprocessing import init_gpu
 
+import time
 
 class Tracking:
     def __init__(self, cfg, intrinsics, img_size):
@@ -288,8 +289,13 @@ class Tracking:
     def handle_frame(self, data):
         timestamp, rgb = data
 
+        # t1 = time.time()
+
         # Track against reference
         img_pyr = self.prep_tracking_img(rgb)
+
+        # t2 = time.time()
+
         self.T_curr_kf, self.aff_curr_kf = photo_tracking_pyr(
             self.T_curr_kf,
             self.aff_curr_kf,
@@ -302,6 +308,8 @@ class Tracking:
             self.cfg["term_criteria"],
         )
 
+        # t3 = time.time()
+
         # Send tracked pose
         T_w_curr = self.get_curr_world_pose()
 
@@ -310,14 +318,20 @@ class Tracking:
         # Decide if keyframe or one-way frame for mapping
         track_data_map = None
 
+        # t4 = time.time()
+
         reproj_depth = self.get_reproj_last_kf(self.T_curr_kf)
         valid_depth_mask = ~torch.isnan(reproj_depth)
         num_valid_reproj_depth = torch.count_nonzero(valid_depth_mask)
         median_depth = torch.median(reproj_depth[valid_depth_mask])
 
+        # t5 = time.time()
+
         new_kf = self.check_keyframe(
             median_depth, num_valid_reproj_depth, self.T_curr_kf
         )
+
+        # t6 = time.time()
         if new_kf:
             track_data_map = (
                 "keyframe",
@@ -346,5 +360,14 @@ class Tracking:
 
                 self.last_rec_sent_ts = timestamp
                 self.num_one_way_since_kf += 1
+
+        # t7 = time.time()
+
+        # print(t2-t1)
+        # print(t3-t2)
+        # print(t4-t3)
+        # print(t5-t4)
+        # print(t6-t5)
+        # print(t7-t6)
 
         return track_data_viz, track_data_map

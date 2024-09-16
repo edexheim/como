@@ -2,4 +2,4 @@ name: RealSense config
 
 height: 480
 width: 640
-fps: 60
+fps: 30

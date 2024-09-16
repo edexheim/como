@@ -5,6 +5,7 @@ from como.geometry.lie_algebra import se3_exp, skew_symmetric
 from como.odom.frontend.photo_utils import img_interp
 import como.odom.backend.robust_loss as robust
 
+import time
 
 # Coarse-to-fine where inputs are lists except Tji_init
 def photo_tracking_pyr(
@@ -113,30 +114,61 @@ def update_pose_ic(T, aff, delta):
 
 
 def tracking_iter(Tji, Pi, intrinsics, img_j, aff, vals_i, dI_dT, photo_sigma, A_norm):
+
+    # t1 = time.time()
+
     pj, depth_j = transform_project(intrinsics, Tji, Pi)
+
+    # t2 = time.time()
 
     vals_target, valid_mask = img_interp(img_j, pj, A_norm)
     valid_mask = torch.logical_and(valid_mask, depth_j[..., 0] > 0)
     invalid_mask = torch.logical_not(valid_mask)
 
+    # t3 = time.time()
+
     tmp = torch.exp(-aff[:, None, 0]) * vals_target
     dI_dT[..., 6] = torch.permute(-tmp, (0, 2, 1))
     vals_target = tmp + aff[:, None, 1]
+
+    # t4 = time.time()
 
     vals_ref = torch.permute(vals_i, (0, 2, 1))
     r = vals_target - vals_ref
     r = torch.permute(r, (0, 2, 1))
 
+    # t5 = time.time()
+
     r_abs = torch.abs(r[valid_mask])
     med_r = torch.median(r_abs)
     sigma_r = 1.4826 * med_r
+
+    # t6 = time.time()
 
     H, grad, total_err, mean_sq_err, grad_norm = robustify_photo(
         r, dI_dT, invalid_mask, sigma_r
     )
 
+    # t7 = time.time()
+
     delta = solve_delta(H, grad)
+
+    # t8 = time.time()
+
     Tji_new, aff_new = update_pose_ic(Tji, aff, delta)
+
+    # t9 = time.time()
+
+    # print("Tracking iter")
+    # print(t2-t1)
+    # print(t3-t2)
+    # print(t4-t3)
+    # print(t5-t4)
+    # print(t6-t5)
+    # print(t7-t6)
+    # print(t8-t7)
+    # print(t9-t8)
+    # print("Total ", t9-t1)
 
     return Tji_new, aff_new, delta, mean_sq_err, grad_norm, pj, valid_mask, depth_j
 
@@ -152,7 +184,7 @@ def photo_level_tracking(
         (img_j.shape[-1], img_j.shape[-2]), device=img_j.device, dtype=img_j.dtype
     )
 
-    iter = 0
+    num_iter = 0
     done = False
     mean_sq_err_prev = float("inf")
     while not done:
@@ -162,7 +194,7 @@ def photo_level_tracking(
             )
         )
 
-        iter += 1
+        num_iter += 1
         delta_norm = torch.norm(delta)
         abs_decrease = mean_sq_err_prev - mean_sq_err
 
@@ -171,13 +203,16 @@ def photo_level_tracking(
 
         # print("Tracking: ", iter, mean_sq_err.item(), delta_norm.item(), rel_decrease.item(), grad_norm.item())
         if (
-            iter >= term_criteria["max_iter"]
+            num_iter >= term_criteria["max_iter"]
             or delta_norm < term_criteria["delta_norm"]
             or rel_decrease < term_criteria["rel_tol"]
             or grad_norm < term_criteria["grad_norm"]
+            or Tji.isnan().any() or aff.isnan().any()
         ):
             done = True
             # print(iter, abs_decrease, delta_norm, rel_decrease)
         mean_sq_err_prev = mean_sq_err
+
+    # print("Tracking iter", num_iter, mean_sq_err.item())
 
     return Tji, aff

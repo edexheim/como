@@ -17,27 +17,27 @@ class MappingMp(Mapping, mp.Process):
 
         # torch.set_num_threads(1)
 
-    def check_failure(self, kf_ref_data):
-        # Check for NaN
-        failed = False
+    # def check_failure(self, kf_ref_data):
+    #     # Check for NaN
+    #     failed = False
 
-        if kf_ref_data is not None:
-            for data in kf_ref_data:
-                if torch.is_tensor(data):
-                    if data.isnan().any():
-                        failed = True
-                        break
+    #     if kf_ref_data is not None:
+    #         for data in kf_ref_data:
+    #             if torch.is_tensor(data):
+    #                 if data.isnan().any():
+    #                     failed = True
+    #                     break
             
-            if failed:
-                print("Reset Mapping")
-                # Reset
-                self.reset()
+    #         if failed:
+    #             print("Reset Mapping")
+    #             # Reset
+    #             self.reset()
 
-                # Propagate up queue
-                self.frame_queue.push(("reset",))
-                self.kf_viz_queue.push(("reset",))
+    #             # Propagate up queue
+    #             self.frame_queue.push(("reset",))
+    #             self.kf_viz_queue.push(("reset",))
         
-        return failed
+    #     return failed
 
     def run(self):
         while True:
@@ -72,6 +72,7 @@ class MappingMp(Mapping, mp.Process):
                         # print("Mapping kf_viz_queue push: ", t6-t5)
                     elif data[0] == "reset":
                         self.reset()
+                        self.frame_queue.pop_until_latest(block=False, timeout=0.01)
                     elif data[0] == "end":
                         break
                 release_data(data)
@@ -93,7 +94,7 @@ class MappingMp(Mapping, mp.Process):
             # Send updated keyframe data to queue
             if kf_updated:
                 # t9 = time.time()
-                kf_ref_data = self.get_kf_ref_data()
+                kf_ref_data = self.get_kf_ref_data()                
                 self.kf_ref_queue.push(kf_ref_data)
                 # t10 = time.time()
                 # print("Mapping kf_ref_queue push: ", t10-t9)

@@ -25,20 +25,31 @@ class RealsenseDataset(IterableDataset):
 
     def start(self):
         config = rs.config()
+        # config.enable_stream(
+        #     stream_type=rs.stream.color,
+        #     width=self.cfg["width"],
+        #     height=self.cfg["height"],
+        #     framerate=self.cfg["fps"],
+        # )
         config.enable_stream(
-            stream_type=rs.stream.color,
-            width=self.cfg["width"],
-            height=self.cfg["height"],
-            framerate=self.cfg["fps"],
+            rs.stream.color, self.cfg["width"], self.cfg["height"], rs.format.rgb8, self.cfg["fps"]
         )
+    #     config.enable_stream(rs.stream.color, 
+    # stream_type: pyrealsense2.pyrealsense2.stream, stream_index: int, width: int, height: int, format: pyrealsense2.pyrealsense2.format, framerate: int) -> None
+
 
         self.pipeline = rs.pipeline()
         profile = self.pipeline.start(config)
 
         rgb_sensor = profile.get_device().query_sensors()[1]
+
         rgb_sensor.set_option(rs.option.enable_auto_exposure, True)
         rgb_sensor.set_option(rs.option.enable_auto_white_balance, True)
         rgb_sensor.set_option(rs.option.exposure, 100)
+
+        # rgb_sensor.set_option(rs.option.enable_auto_exposure, False)
+        # rgb_sensor.set_option(rs.option.enable_auto_white_balance, False)
+        # rgb_sensor.set_option(rs.option.exposure, 50)
 
         rgb_profile = rs.video_stream_profile(profile.get_stream(rs.stream.color))
         rgb_intrinsics = rgb_profile.get_intrinsics()

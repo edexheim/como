@@ -167,36 +167,38 @@ class ComoMp(GuiWindow):
                 self.tracking_done = True
             else:
                 tracked_timestamp, tracked_pose = track_data_viz
-                # Record data
-                # self.timestamps.append(tracked_timestamp)
-                # self.est_poses = np.concatenate((self.est_poses, tracked_pose))
-                self.last_pose = tracked_pose[0].clone().numpy()
-                
-                # Visualize tracked pose
-                # self.update_pose_render_lock.acquire()
-                update_pose_render_done = self.update_pose_render_done
-                # self.update_pose_render_lock.release()
-                if update_pose_render_done:
-                    # self.update_pose_render_lock.acquire()
-                    self.update_pose_render_done = False
-                    # self.update_pose_render_lock.release()
-                    gui.Application.instance.post_to_main_thread(
-                        self.window, lambda: self.update_pose_render(tracked_pose)
-                    )
 
-                # Visualize background using shaders if using
-                if self.render_val == "Phong":
-                    # self.render_o3d_lock.acquire()
-                    render_o3d_done = self.render_o3d_done
-                    # self.render_o3d_lock.release()
-                    if render_o3d_done:
-                        # self.render_o3d_lock.acquire()
-                        self.render_o3d_done = False
-                        # self.render_o3d_lock.release()
-                        # Visualize background using shaders if using
+                if not tracked_pose.isnan().any():
+                    # Record data
+                    # self.timestamps.append(tracked_timestamp)
+                    # self.est_poses = np.concatenate((self.est_poses, tracked_pose))
+                    self.last_pose = tracked_pose[0].clone().numpy()
+                    
+                    # Visualize tracked pose
+                    # self.update_pose_render_lock.acquire()
+                    update_pose_render_done = self.update_pose_render_done
+                    # self.update_pose_render_lock.release()
+                    if update_pose_render_done:
+                        # self.update_pose_render_lock.acquire()
+                        self.update_pose_render_done = False
+                        # self.update_pose_render_lock.release()
                         gui.Application.instance.post_to_main_thread(
-                            self.window, lambda: self.render_o3d_image()
+                            self.window, lambda: self.update_pose_render(tracked_pose)
                         )
+
+                    # Visualize background using shaders if using
+                    if self.render_val == "Phong":
+                        # self.render_o3d_lock.acquire()
+                        render_o3d_done = self.render_o3d_done
+                        # self.render_o3d_lock.release()
+                        if render_o3d_done:
+                            # self.render_o3d_lock.acquire()
+                            self.render_o3d_done = False
+                            # self.render_o3d_lock.release()
+                            # Visualize background using shaders if using
+                            gui.Application.instance.post_to_main_thread(
+                                self.window, lambda: self.render_o3d_image()
+                            )
         
         release_data(track_data_viz)
 
@@ -211,6 +213,9 @@ class ComoMp(GuiWindow):
         if kf_viz_data is not None:
             if kf_viz_data[0] == "reset":
                 print("Viz mapping reset")
+                # Clear queues
+                self.tracking_pose_queue.pop_until_latest(block=False, timeout=0.01)
+                self.kf_viz_queue.pop_until_latest(block=False, timeout=0.01)
                 # Clear geometries and background
                 gui.Application.instance.post_to_main_thread(
                     self.window, reset_scene)

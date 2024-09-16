@@ -18,6 +18,8 @@ def main(dataset):
     os.environ["OMP_WAIT_POLICY"] = "PASSIVE"
     # print(os.environ["OMP_WAIT_POLICY"])
 
+    # torch.set_flush_denormal(True)
+
     ## Parameters
     with open("./config/open3d_viz.yml", "r") as file:
         viz_cfg = yaml.safe_load(file)
