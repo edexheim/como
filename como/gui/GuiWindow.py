@@ -35,7 +35,7 @@ class GuiWindow:
         self.device = self.cfg["device"]
         self.dtype = str_to_dtype(self.cfg["dtype"])
 
-        self.window_w, self.window_h = 1920, 1080
+        self.window_w, self.window_h = 2490, 1536 # 1920, 1080
         self.window = gui.Application.instance.create_window(
             "COMO", width=self.window_w, height=self.window_h
         )
@@ -82,8 +82,8 @@ class GuiWindow:
 
         # Geometry visualization
         self.anchor_point_slider = gui.Slider(gui.Slider.DOUBLE)
-        self.anchor_point_slider.set_limits(-5.0, 0.0)  # Log of radius
-        self.anchor_point_slider.double_value = -3.0
+        self.anchor_point_slider.set_limits(-4.0, -1.0)  # Log of radius
+        self.anchor_point_slider.double_value = -2.5
 
         self.render_lv = gui.ListView()
         render_options = ["None", "Point Cloud", "Phong"]
@@ -496,7 +496,7 @@ class GuiWindow:
 
         # Show sparse point cloud
         sparse_point_color = np.array([[1.0], [0.0], [0.0]])
-        anchor_radius = np.power(10.0, self.anchor_point_slider.double_value)
+        anchor_radius = self.scale*np.power(10.0, self.anchor_point_slider.double_value)
         spheres = torch_to_o3d_spheres(
             P_sparse, anchor_radius, resolution=5, color=sparse_point_color
         )
