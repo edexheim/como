@@ -52,21 +52,20 @@ We would also like to thank the authors of the following open-source repositorie
 ## Citation
 If you found this code/work to be useful in your own research, please consider citing the following:
 ```bibtex
-@article{dexheimer2024como,
+@inproceedings{dexheimer2024como,
   title={{COMO}: Compact Mapping and Odometry},
   author={Dexheimer, Eric and Davison, Andrew J.},
-  journal={arXiv preprint arXiv:2404.03531},
+  booktitle={Proceedings of the European Conference on Computer Vision ({ECCV})},
   year={2024}
-}
+}    
 
 ```
 
 ```bibtex
-@inproceedings{dexheimer2023depthcov,
+@inproceedings{dexheimer_depthcov_2023,
   title={Learning a Depth Covariance Function},
   author={Dexheimer, Eric and Davison, Andrew J.},
-  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
-  pages={13122--13131},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition ({CVPR})},
   year={2023}
 }
 ```
