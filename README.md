@@ -1,7 +1,7 @@
 
 # COMO: Compact Mapping and Odometry
 
-<h3 align="center"> <a href="https://edexheim.github.io/como/pdf/como.pdf">Paper</a> | <a href="https://edexheim.github.io/como/">Project Page</a> | <a href="https://youtu.be/9MxCQp-0vI0">Video</a> </h3>
+<h3 align="center"> <a href="https://arxiv.org/abs/2404.03531">Paper</a> | <a href="https://edexheim.github.io/como/">Project Page</a> | <a href="https://youtu.be/9MxCQp-0vI0">Video</a> </h3>
 <h3 align="center"> <a href="https://edexheim.github.io/">Eric Dexheimer</a> and <a href="https://www.doc.ic.ac.uk/~ajd/">Andrew J. Davison</a> </h3>
 
 <p align="center">
